@@ -1,0 +1,98 @@
+# -*- coding: utf-8 -*-
+"""
+Spyder Editor
+
+This is a temporary script file.
+"""
+
+# Customer Churn Prediction using Naïve Bayes
+# ============================================
+
+# STEP 1: Import necessary libraries
+import pandas as pd
+import numpy as np
+import sklearn
+from sklearn.model_selection import train_test_split
+from sklearn.naive_bayes import GaussianNB
+from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, roc_curve, auc
+from sklearn.preprocessing import LabelEncoder
+import matplotlib.pyplot as plt
+
+# STEP 2: Load the dataset
+df = pd.read_csv("Customer_Churn_Dataset_Final.csv")
+
+# STEP 3: Data Preprocessing
+# ---------------------------
+# Drop 'Customer ID' as it does not help in prediction
+df.drop('Customer ID', axis=1, inplace=True)
+
+# Check for missing values
+print(df.isnull().sum())
+
+# Fill missing numerical values with median
+df['Age'] = df['Age'].fillna(df['Age'].median())
+df['Monthly Charges'] = df['Monthly Charges'].fillna(df['Monthly Charges'].median())
+df['Tenure (Months)'] = df['Tenure (Months)'].fillna(df['Tenure (Months)'].median())
+
+# STEP 4: Feature Engineering
+# ---------------------------
+# Convert categorical columns to numeric
+
+# Encode 'Contract Type'
+df['Contract Type'] = df['Contract Type'].astype(str)
+le_contract = LabelEncoder()
+df['Contract Type'] = le_contract.fit_transform(df['Contract Type'])
+
+# Encode 'Has Internet Service'
+le_internet = LabelEncoder()
+df['Has Internet Service'] = le_internet.fit_transform(df['Has Internet Service'])
+
+# Encode 'Churn' (Target Variable)
+df['Churn'] = df['Churn'].map({'Yes':1, 'No':0})
+
+# Split data into X (features) and y (target)
+X = df.drop('Churn', axis=1)
+y = df['Churn']
+
+# STEP 5: Data Splitting
+# ----------------------
+# 80% train, 20% test
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# STEP 6: Model Training with Naïve Bayes
+# ---------------------------------------
+model = GaussianNB()
+model.fit(X_train, y_train)
+
+# STEP 7: Predictions and Performance Evaluation
+# ----------------------------------------------
+y_pred = model.predict(X_test)
+
+# Confusion Matrix
+cm = confusion_matrix(y_test, y_pred)
+print("Confusion Matrix:\n", cm)
+
+# Accuracy, Precision, Recall
+acc = accuracy_score(y_test, y_pred)
+prec = precision_score(y_test, y_pred)
+rec = recall_score(y_test, y_pred)
+
+print(f"Accuracy: {acc:.2f}")
+print(f"Precision: {prec:.2f}")
+print(f"Recall: {rec:.2f}")
+
+# ROC Curve and AUC
+y_prob = model.predict_proba(X_test)[:,1]
+fpr, tpr, thresholds = roc_curve(y_test, y_prob)
+roc_auc = auc(fpr, tpr)
+
+plt.figure(figsize=(8,6))
+plt.plot(fpr, tpr, label=f"ROC Curve (AUC = {roc_auc:.2f})")
+plt.plot([0,1], [0,1], linestyle='--', color='gray')
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('ROC Curve for Customer Churn Prediction')
+plt.legend()
+plt.show()
+
+print(f"AUC Score: {roc_auc:.2f}")
